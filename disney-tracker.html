@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disney Film Tracker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            padding: 30px 40px;
+            text-align: center;
+            border-bottom: 2px solid #e94560;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #e94560, #f5a623, #e94560);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            to { background-position: 200% center; }
+        }
+
+        .stats {
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: #8a8a9a;
+        }
+
+        .stats span {
+            color: #e94560;
+            font-weight: 600;
+        }
+
+        .filter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 18px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            background: transparent;
+            color: #8a8a9a;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: #e94560;
+            color: #fff;
+            border-color: #e94560;
+        }
+
+        .section {
+            padding: 30px 40px;
+        }
+
+        .section h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #c0c0d0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2 .count {
+            font-size: 0.8rem;
+            background: #333;
+            padding: 2px 10px;
+            border-radius: 10px;
+            color: #8a8a9a;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+        }
+
+        .movie-card {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            aspect-ratio: 2/3;
+            background: #2a2a3e;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+        }
+
+        .movie-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%) brightness(0.5);
+            transition: filter 0.5s ease;
+        }
+
+        .movie-card.watched img {
+            filter: grayscale(0%) brightness(1);
+        }
+
+        .movie-card .placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #2a2a3e, #1e1e32);
+            filter: grayscale(100%) brightness(0.5);
+            transition: filter 0.5s ease;
+        }
+
+        .movie-card.watched .placeholder {
+            filter: grayscale(0%) brightness(1);
+            background: linear-gradient(135deg, #0f3460, #16213e);
+        }
+
+        .placeholder .emoji {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .placeholder .title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #c0c0d0;
+        }
+
+        .placeholder .year {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .movie-card .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 10px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .movie-card:hover .overlay {
+            opacity: 1;
+        }
+
+        .overlay .movie-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .overlay .movie-year {
+            font-size: 0.65rem;
+            color: #8a8a9a;
+        }
+
+        .movie-card .check {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.6);
+            border: 2px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .movie-card:hover .check,
+        .movie-card.watched .check {
+            opacity: 1;
+        }
+
+        .movie-card.watched .check {
+            background: #e94560;
+            border-color: #e94560;
+        }
+
+        /* API Key Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #1e1e32;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid #333;
+        }
+
+        .modal h2 {
+            color: #e94560;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .modal p {
+            color: #8a8a9a;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal a {
+            color: #e94560;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #2a2a3e;
+            color: #e0e0e0;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .modal input:focus {
+            border-color: #e94560;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: white;
+        }
+
+        .btn-primary:hover { background: #d13050; }
+
+        .btn-secondary {
+            background: transparent;
+            color: #8a8a9a;
+            border: 1px solid #333;
+        }
+
+        .btn-secondary:hover { border-color: #666; color: #ccc; }
+
+        .progress-bar-container {
+            width: 200px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin: 8px auto 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #f5a623);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 60px;
+            color: #8a8a9a;
+        }
+
+        .loading-spinner::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 40px;
+            margin: 15px auto;
+            border: 3px solid #333;
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            header { padding: 20px; }
+            header h1 { font-size: 1.5rem; }
+            .section { padding: 20px; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Disney Film Tracker</h1>
+    <div class="stats">
+        <span id="watched-count">0</span> von <span id="total-count">0</span> Filmen gesehen
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+        </div>
+    </div>
+    <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">Alle</button>
+        <button class="filter-btn" data-filter="watched">Gesehen</button>
+        <button class="filter-btn" data-filter="unwatched">Noch nicht gesehen</button>
+        <button class="filter-btn" data-filter="disney">Disney Klassiker</button>
+        <button class="filter-btn" data-filter="pixar">Pixar</button>
+        <button class="filter-btn" data-filter="fox">Fox / Blue Sky</button>
+    </div>
+</header>
+
+<div id="app">
+    <div class="loading-spinner">Lade Filme...</div>
+</div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="api-modal" style="display:none;">
+    <div class="modal">
+        <h2>TMDB API-Key einrichten</h2>
+        <p>
+            Um die echten Filmcover zu laden, brauchst du einen kostenlosen API-Key von
+            <a href="https://www.themoviedb.org/settings/api" target="_blank">The Movie Database (TMDB)</a>.<br><br>
+            1. Erstelle einen Account auf themoviedb.org<br>
+            2. Gehe zu Einstellungen → API<br>
+            3. Beantrage einen API-Key (Developer)<br>
+            4. Kopiere den "API Key (v3 auth)" hier rein
+        </p>
+        <input type="text" id="api-key-input" placeholder="Dein TMDB API-Key (v3)...">
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="saveApiKey()">Speichern</button>
+            <button class="btn btn-secondary" onclick="skipApiKey()">Ohne Cover starten</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// FILM DATABASE
+// ============================================================
+const MOVIES = [
+    // === WALT DISNEY ANIMATION STUDIOS ===
+    { id: "disney-1", title: "Schneewittchen und die sieben Zwerge", titleEn: "Snow White and the Seven Dwarfs", year: 1937, category: "disney" },
+    { id: "disney-2", title: "Pinocchio", titleEn: "Pinocchio", year: 1940, category: "disney" },
+    { id: "disney-3", title: "Fantasia", titleEn: "Fantasia", year: 1940, category: "disney" },
+    { id: "disney-4", title: "Dumbo", titleEn: "Dumbo", year: 1941, category: "disney" },
+    { id: "disney-5", title: "Bambi", titleEn: "Bambi", year: 1942, category: "disney" },
+    { id: "disney-6", title: "Saludos Amigos", titleEn: "Saludos Amigos", year: 1942, category: "disney" },
+    { id: "disney-7", title: "Drei Caballeros", titleEn: "The Three Caballeros", year: 1944, category: "disney" },
+    { id: "disney-8", title: "Make Mine Music", titleEn: "Make Mine Music", year: 1946, category: "disney" },
+    { id: "disney-9", title: "Frei und ungebunden", titleEn: "Fun and Fancy Free", year: 1947, category: "disney" },
+    { id: "disney-10", title: "Melody Time", titleEn: "Melody Time", year: 1948, category: "disney" },
+    { id: "disney-11", title: "Die Abenteuer von Ichabod und Taddäus Kröte", titleEn: "The Adventures of Ichabod and Mr. Toad", year: 1949, category: "disney" },
+    { id: "disney-12", title: "Cinderella", titleEn: "Cinderella", year: 1950, category: "disney" },
+    { id: "disney-13", title: "Alice im Wunderland", titleEn: "Alice in Wonderland", year: 1951, category: "disney" },
+    { id: "disney-14", title: "Peter Pan", titleEn: "Peter Pan", year: 1953, category: "disney" },
+    { id: "disney-15", title: "Susi und Strolch", titleEn: "Lady and the Tramp", year: 1955, category: "disney" },
+    { id: "disney-16", title: "Dornröschen", titleEn: "Sleeping Beauty", year: 1959, category: "disney" },
+    { id: "disney-17", title: "101 Dalmatiner", titleEn: "One Hundred and One Dalmatians", year: 1961, category: "disney" },
+    { id: "disney-18", title: "Die Hexe und der Zauberer", titleEn: "The Sword in the Stone", year: 1963, category: "disney" },
+    { id: "disney-19", title: "Das Dschungelbuch", titleEn: "The Jungle Book", year: 1967, category: "disney" },
+    { id: "disney-20", title: "Aristocats", titleEn: "The Aristocats", year: 1970, category: "disney" },
+    { id: "disney-21", title: "Robin Hood", titleEn: "Robin Hood", year: 1973, category: "disney" },
+    { id: "disney-22", title: "Die vielen Abenteuer von Winnie Puuh", titleEn: "The Many Adventures of Winnie the Pooh", year: 1977, category: "disney" },
+    { id: "disney-23", title: "Bernard und Bianca", titleEn: "The Rescuers", year: 1977, category: "disney" },
+    { id: "disney-24", title: "Cap und Capper", titleEn: "The Fox and the Hound", year: 1981, category: "disney" },
+    { id: "disney-25", title: "Taran und der Zauberkessel", titleEn: "The Black Cauldron", year: 1985, category: "disney" },
+    { id: "disney-26", title: "Basil, der große Mäusedetektiv", titleEn: "The Great Mouse Detective", year: 1986, category: "disney" },
+    { id: "disney-27", title: "Oliver & Co.", titleEn: "Oliver & Company", year: 1988, category: "disney" },
+    { id: "disney-28", title: "Arielle, die Meerjungfrau", titleEn: "The Little Mermaid", year: 1989, category: "disney" },
+    { id: "disney-29", title: "Bernard und Bianca im Känguruhland", titleEn: "The Rescuers Down Under", year: 1990, category: "disney" },
+    { id: "disney-30", title: "Die Schöne und das Biest", titleEn: "Beauty and the Beast", year: 1991, category: "disney" },
+    { id: "disney-31", title: "Aladdin", titleEn: "Aladdin", year: 1992, category: "disney" },
+    { id: "disney-32", title: "Der König der Löwen", titleEn: "The Lion King", year: 1994, category: "disney" },
+    { id: "disney-33", title: "Pocahontas", titleEn: "Pocahontas", year: 1995, category: "disney" },
+    { id: "disney-34", title: "Der Glöckner von Notre Dame", titleEn: "The Hunchback of Notre Dame", year: 1996, category: "disney" },
+    { id: "disney-35", title: "Hercules", titleEn: "Hercules", year: 1997, category: "disney" },
+    { id: "disney-36", title: "Mulan", titleEn: "Mulan", year: 1998, category: "disney" },
+    { id: "disney-37", title: "Tarzan", titleEn: "Tarzan", year: 1999, category: "disney" },
+    { id: "disney-38", title: "Fantasia 2000", titleEn: "Fantasia 2000", year: 1999, category: "disney" },
+    { id: "disney-39", title: "Dinosaurier", titleEn: "Dinosaur", year: 2000, category: "disney" },
+    { id: "disney-40", title: "Ein Königreich für ein Lama", titleEn: "The Emperor's New Groove", year: 2000, category: "disney" },
+    { id: "disney-41", title: "Atlantis – Das Geheimnis der verlorenen Stadt", titleEn: "Atlantis: The Lost Empire", year: 2001, category: "disney" },
+    { id: "disney-42", title: "Lilo & Stitch", titleEn: "Lilo & Stitch", year: 2002, category: "disney" },
+    { id: "disney-43", title: "Der Schatzplanet", titleEn: "Treasure Planet", year: 2002, category: "disney" },
+    { id: "disney-44", title: "Bärenbrüder", titleEn: "Brother Bear", year: 2003, category: "disney" },
+    { id: "disney-45", title: "Die Kühe sind los", titleEn: "Home on the Range", year: 2004, category: "disney" },
+    { id: "disney-46", title: "Himmel und Huhn", titleEn: "Chicken Little", year: 2005, category: "disney" },
+    { id: "disney-47", title: "Triff die Robinsons", titleEn: "Meet the Robinsons", year: 2007, category: "disney" },
+    { id: "disney-48", title: "Bolt – Ein Hund für alle Fälle", titleEn: "Bolt", year: 2008, category: "disney" },
+    { id: "disney-49", title: "Küss den Frosch", titleEn: "The Princess and the Frog", year: 2009, category: "disney" },
+    { id: "disney-50", title: "Rapunzel – Neu verföhnt", titleEn: "Tangled", year: 2010, category: "disney" },
+    { id: "disney-51", title: "Winnie Puuh", titleEn: "Winnie the Pooh", year: 2011, category: "disney" },
+    { id: "disney-52", title: "Ralph reichts", titleEn: "Wreck-It Ralph", year: 2012, category: "disney" },
+    { id: "disney-53", title: "Die Eiskönigin", titleEn: "Frozen", year: 2013, category: "disney" },
+    { id: "disney-54", title: "Baymax – Riesiges Robowabohu", titleEn: "Big Hero 6", year: 2014, category: "disney" },
+    { id: "disney-55", title: "Zoomania", titleEn: "Zootopia", year: 2016, category: "disney" },
+    { id: "disney-56", title: "Vaiana", titleEn: "Moana", year: 2016, category: "disney" },
+    { id: "disney-57", title: "Chaos im Netz", titleEn: "Ralph Breaks the Internet", year: 2018, category: "disney" },
+    { id: "disney-58", title: "Die Eiskönigin 2", titleEn: "Frozen II", year: 2019, category: "disney" },
+    { id: "disney-59", title: "Raya und der letzte Drache", titleEn: "Raya and the Last Dragon", year: 2021, category: "disney" },
+    { id: "disney-60", title: "Encanto", titleEn: "Encanto", year: 2021, category: "disney" },
+    { id: "disney-61", title: "Strange World", titleEn: "Strange World", year: 2022, category: "disney" },
+    { id: "disney-62", title: "Wish", titleEn: "Wish", year: 2023, category: "disney" },
+    { id: "disney-63", title: "Vaiana 2", titleEn: "Moana 2", year: 2024, category: "disney" },
+
+    // === PIXAR ===
+    { id: "pixar-1", title: "Toy Story", titleEn: "Toy Story", year: 1995, category: "pixar" },
+    { id: "pixar-2", title: "Das große Krabbeln", titleEn: "A Bug's Life", year: 1998, category: "pixar" },
+    { id: "pixar-3", title: "Toy Story 2", titleEn: "Toy Story 2", year: 1999, category: "pixar" },
+    { id: "pixar-4", title: "Die Monster AG", titleEn: "Monsters, Inc.", year: 2001, category: "pixar" },
+    { id: "pixar-5", title: "Findet Nemo", titleEn: "Finding Nemo", year: 2003, category: "pixar" },
+    { id: "pixar-6", title: "Die Unglaublichen", titleEn: "The Incredibles", year: 2004, category: "pixar" },
+    { id: "pixar-7", title: "Cars", titleEn: "Cars", year: 2006, category: "pixar" },
+    { id: "pixar-8", title: "Ratatouille", titleEn: "Ratatouille", year: 2007, category: "pixar" },
+    { id: "pixar-9", title: "WALL·E", titleEn: "WALL·E", year: 2008, category: "pixar", tmdbId: 10681 },
+    { id: "pixar-10", title: "Oben", titleEn: "Up", year: 2009, category: "pixar" },
+    { id: "pixar-11", title: "Toy Story 3", titleEn: "Toy Story 3", year: 2010, category: "pixar" },
+    { id: "pixar-12", title: "Cars 2", titleEn: "Cars 2", year: 2011, category: "pixar" },
+    { id: "pixar-13", title: "Merida", titleEn: "Brave", year: 2012, category: "pixar" },
+    { id: "pixar-14", title: "Die Monster Uni", titleEn: "Monsters University", year: 2013, category: "pixar" },
+    { id: "pixar-15", title: "Alles steht Kopf", titleEn: "Inside Out", year: 2015, category: "pixar" },
+    { id: "pixar-16", title: "Arlo & Spot", titleEn: "The Good Dinosaur", year: 2015, category: "pixar" },
+    { id: "pixar-17", title: "Findet Dorie", titleEn: "Finding Dory", year: 2016, category: "pixar" },
+    { id: "pixar-18", title: "Cars 3", titleEn: "Cars 3", year: 2017, category: "pixar" },
+    { id: "pixar-19", title: "Coco", titleEn: "Coco", year: 2017, category: "pixar" },
+    { id: "pixar-20", title: "Die Unglaublichen 2", titleEn: "Incredibles 2", year: 2018, category: "pixar" },
+    { id: "pixar-21", title: "Toy Story 4", titleEn: "Toy Story 4", year: 2019, category: "pixar" },
+    { id: "pixar-22", title: "Onward: Keine halben Sachen", titleEn: "Onward", year: 2020, category: "pixar" },
+    { id: "pixar-23", title: "Soul", titleEn: "Soul", year: 2020, category: "pixar" },
+    { id: "pixar-24", title: "Luca", titleEn: "Luca", year: 2021, category: "pixar" },
+    { id: "pixar-25", title: "Rot", titleEn: "Turning Red", year: 2022, category: "pixar" },
+    { id: "pixar-26", title: "Lightyear", titleEn: "Lightyear", year: 2022, category: "pixar" },
+    { id: "pixar-27", title: "Elemental", titleEn: "Elemental", year: 2023, category: "pixar" },
+    { id: "pixar-28", title: "Alles steht Kopf 2", titleEn: "Inside Out 2", year: 2024, category: "pixar" },
+    { id: "pixar-29", title: "Elio", titleEn: "Elio", year: 2025, category: "pixar" },
+
+    // === 20TH CENTURY FOX / BLUE SKY STUDIOS ===
+    { id: "fox-1", title: "Anastasia", titleEn: "Anastasia", year: 1997, category: "fox" },
+    { id: "fox-2", title: "Titan A.E.", titleEn: "Titan A.E.", year: 2000, category: "fox" },
+    { id: "fox-3", title: "Ice Age", titleEn: "Ice Age", year: 2002, category: "fox" },
+    { id: "fox-4", title: "Robots", titleEn: "Robots", year: 2005, category: "fox" },
+    { id: "fox-5", title: "Ice Age 2 – Jetzt taut's", titleEn: "Ice Age: The Meltdown", year: 2006, category: "fox" },
+    { id: "fox-6", title: "Horton hört ein Hu!", titleEn: "Horton Hears a Who!", year: 2008, category: "fox" },
+    { id: "fox-7", title: "Ice Age 3 – Die Dinosaurier sind los", titleEn: "Ice Age: Dawn of the Dinosaurs", year: 2009, category: "fox" },
+    { id: "fox-8", title: "Rio", titleEn: "Rio", year: 2011, category: "fox" },
+    { id: "fox-9", title: "Ice Age 4 – Voll verschoben", titleEn: "Ice Age: Continental Drift", year: 2012, category: "fox" },
+    { id: "fox-10", title: "Epic – Verborgenes Königreich", titleEn: "Epic", year: 2013, category: "fox" },
+    { id: "fox-11", title: "Rio 2 – Dschungelfieber", titleEn: "Rio 2", year: 2014, category: "fox" },
+    { id: "fox-12", title: "Die Peanuts – Der Film", titleEn: "The Peanuts Movie", year: 2015, category: "fox" },
+    { id: "fox-13", title: "Ice Age 5 – Kollision voraus!", titleEn: "Ice Age: Collision Course", year: 2016, category: "fox" },
+    { id: "fox-14", title: "Ferdinand – Geht STIERisch ab!", titleEn: "Ferdinand", year: 2017, category: "fox" },
+    { id: "fox-15", title: "Spione Undercover", titleEn: "Spies in Disguise", year: 2019, category: "fox" },
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let watchedMovies = JSON.parse(localStorage.getItem('disney-watched') || '{}');
+let posterCache = JSON.parse(localStorage.getItem('disney-posters') || '{}');
+// Clear broken WALL·E cache entry from previous version
+if (posterCache['pixar-9']) { delete posterCache['pixar-9']; localStorage.setItem('disney-posters', JSON.stringify(posterCache)); }
+let apiKey = localStorage.getItem('disney-tmdb-key') || '';
+let currentFilter = 'all';
+
+// ============================================================
+// TMDB API
+// ============================================================
+async function fetchPoster(movie) {
+    if (posterCache[movie.id]) return posterCache[movie.id];
+    if (!apiKey) return null;
+
+    try {
+        let posterPath = null;
+
+        // Use direct TMDB ID if available (for tricky titles like WALL·E)
+        if (movie.tmdbId) {
+            const res = await fetch(
+                `https://api.themoviedb.org/3/movie/${movie.tmdbId}?api_key=${apiKey}&language=de-DE`
+            );
+            const data = await res.json();
+            if (data.poster_path) posterPath = data.poster_path;
+        } else {
+            const query = encodeURIComponent(movie.titleEn);
+            const res = await fetch(
+                `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${query}&year=${movie.year}&language=de-DE`
+            );
+            const data = await res.json();
+            if (data.results && data.results.length > 0 && data.results[0].poster_path) {
+                posterPath = data.results[0].poster_path;
+            }
+        }
+
+        if (posterPath) {
+            const url = `https://image.tmdb.org/t/p/w342${posterPath}`;
+            posterCache[movie.id] = url;
+            localStorage.setItem('disney-posters', JSON.stringify(posterCache));
+            return url;
+        }
+    } catch (e) {
+        console.warn('TMDB fetch failed for', movie.title, e);
+    }
+    return null;
+}
+
+async function fetchAllPosters() {
+    const uncached = MOVIES.filter(m => !posterCache[m.id]);
+    if (uncached.length === 0) return;
+
+    // Batch in groups of 5 to avoid rate limits
+    for (let i = 0; i < uncached.length; i += 5) {
+        const batch = uncached.slice(i, i + 5);
+        await Promise.all(batch.map(async (movie) => {
+            const url = await fetchPoster(movie);
+            if (url) {
+                const img = document.querySelector(`[data-movie-id="${movie.id}"] img`);
+                if (img) {
+                    img.src = url;
+                    img.style.display = 'block';
+                    const placeholder = document.querySelector(`[data-movie-id="${movie.id}"] .placeholder`);
+                    if (placeholder) placeholder.style.display = 'none';
+                }
+            }
+        }));
+        // Small delay between batches
+        if (i + 5 < uncached.length) {
+            await new Promise(r => setTimeout(r, 250));
+        }
+    }
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function toggleWatched(movieId) {
+    watchedMovies[movieId] = !watchedMovies[movieId];
+    localStorage.setItem('disney-watched', JSON.stringify(watchedMovies));
+
+    const card = document.querySelector(`[data-movie-id="${movieId}"]`);
+    if (card) {
+        card.classList.toggle('watched', watchedMovies[movieId]);
+    }
+    updateStats();
+    applyFilter();
+}
+
+function updateStats() {
+    const total = MOVIES.length;
+    const watched = MOVIES.filter(m => watchedMovies[m.id]).length;
+    document.getElementById('watched-count').textContent = watched;
+    document.getElementById('total-count').textContent = total;
+    const pct = total > 0 ? (watched / total * 100) : 0;
+    document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function applyFilter() {
+    document.querySelectorAll('.movie-card').forEach(card => {
+        const id = card.dataset.movieId;
+        const movie = MOVIES.find(m => m.id === id);
+        let show = true;
+
+        if (currentFilter === 'watched') show = !!watchedMovies[id];
+        else if (currentFilter === 'unwatched') show = !watchedMovies[id];
+        else if (currentFilter === 'disney') show = movie.category === 'disney';
+        else if (currentFilter === 'pixar') show = movie.category === 'pixar';
+        else if (currentFilter === 'fox') show = movie.category === 'fox';
+
+        card.style.display = show ? '' : 'none';
+    });
+}
+
+function getEmoji(category) {
+    if (category === 'pixar') return '🎬';
+    if (category === 'fox') return '🦊';
+    return '🏰';
+}
+
+function renderApp() {
+    const app = document.getElementById('app');
+
+    const disneyMovies = MOVIES.filter(m => m.category === 'disney');
+    const pixarMovies = MOVIES.filter(m => m.category === 'pixar');
+    const foxMovies = MOVIES.filter(m => m.category === 'fox');
+
+    const disneyWatched = disneyMovies.filter(m => watchedMovies[m.id]).length;
+    const pixarWatched = pixarMovies.filter(m => watchedMovies[m.id]).length;
+    const foxWatched = foxMovies.filter(m => watchedMovies[m.id]).length;
+
+    app.innerHTML = `
+        <div class="section" id="section-disney">
+            <h2>Walt Disney Animation Studios <span class="count">${disneyWatched}/${disneyMovies.length}</span></h2>
+            <div class="grid">
+                ${disneyMovies.map(m => renderCard(m)).join('')}
+            </div>
+        </div>
+        <div class="section" id="section-pixar">
+            <h2>Pixar <span class="count">${pixarWatched}/${pixarMovies.length}</span></h2>
+            <div class="grid">
+                ${pixarMovies.map(m => renderCard(m)).join('')}
+            </div>
+        </div>
+        <div class="section" id="section-fox">
+            <h2>20th Century Fox / Blue Sky Studios <span class="count">${foxWatched}/${foxMovies.length}</span></h2>
+            <div class="grid">
+                ${foxMovies.map(m => renderCard(m)).join('')}
+            </div>
+        </div>
+    `;
+
+    // Attach click events
+    document.querySelectorAll('.movie-card').forEach(card => {
+        card.addEventListener('click', () => toggleWatched(card.dataset.movieId));
+    });
+
+    updateStats();
+}
+
+function renderCard(movie) {
+    const isWatched = watchedMovies[movie.id];
+    const hasPoster = posterCache[movie.id];
+
+    return `
+        <div class="movie-card ${isWatched ? 'watched' : ''}" data-movie-id="${movie.id}">
+            <img src="${hasPoster ? posterCache[movie.id] : ''}"
+                 alt="${movie.title}"
+                 style="display: ${hasPoster ? 'block' : 'none'}"
+                 loading="lazy"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="placeholder" style="display: ${hasPoster ? 'none' : 'flex'}">
+                <div class="emoji">${getEmoji(movie.category)}</div>
+                <div class="title">${movie.title}</div>
+                <div class="year">${movie.year}</div>
+            </div>
+            <div class="overlay">
+                <div class="movie-title">${movie.title}</div>
+                <div class="movie-year">${movie.year}</div>
+            </div>
+            <div class="check">${isWatched ? '✓' : ''}</div>
+        </div>
+    `;
+}
+
+// ============================================================
+// FILTER BUTTONS
+// ============================================================
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        applyFilter();
+    });
+});
+
+// ============================================================
+// API KEY MODAL
+// ============================================================
+function saveApiKey() {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (key) {
+        apiKey = key;
+        localStorage.setItem('disney-tmdb-key', key);
+    }
+    document.getElementById('api-modal').style.display = 'none';
+    renderApp();
+    if (apiKey) fetchAllPosters();
+}
+
+function skipApiKey() {
+    document.getElementById('api-modal').style.display = 'none';
+    renderApp();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+    if (!apiKey) {
+        document.getElementById('api-modal').style.display = 'flex';
+        // Still render the app behind the modal
+        renderApp();
+    } else {
+        renderApp();
+        fetchAllPosters();
+    }
+}
+
+init();
+</script>
+
+</body>
+</html>
